@@ -1,0 +1,24 @@
+//task1
+gcc -o task1 main.c swap.c
+./task1
+//task2
+gcc -o task2 main.c revert_string.c
+./task2 "asdfg"
+//task3
+gcc -c revert_string/main.c -o libstatic/main.o
+gcc -c revert_string/revert_string.c -o libstatic/revert_string.o
+ar rcs libstatic/libstaticrevert.a libstatic/revert_string.o
+gcc libstatic/main.o -L libstatic -lstaticrevert -o libstatic/staticlink
+./libstatic/staticlink "asdfgh"
+//static yes
+gcc -c -fPIC revert_string/revert_string.c -o libdinamic/revert_string.o
+gcc -shared libdinamic/revert_string.o -o libdinamic/libdinamrevert.so
+gcc libstatic/main.o -L libdinamic -ldinamrevert -o libdinamic/dinamiclink 
+echo $LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=libdinamic; ./libdinamic/dinamiclink "asdfgh"
+//dinamic yes
+//task4
+ln revert_string/revert_string.h tests/revert_string.h
+sudo apt -y install libcunit1 libcunit1-doc libcunit1-dev
+gcc -o tests/tests tests/tests.c -L libdinamic -ldinamrevert -lcunit
+export LD_LIBRARY_PATH=libdinamic; ./tests/tests
