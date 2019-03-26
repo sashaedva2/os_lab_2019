@@ -40,18 +40,27 @@ int main(int argc, char **argv) {
         switch (option_index) {
           case 0:
             seed = atoi(optarg);
-            // your code here
-            // error handling
+            if(seed<0)
+            {
+               printf("seed is a positive number\n");
+               return 1; 
+            }
             break;
           case 1:
             array_size = atoi(optarg);
-            // your code here
-            // error handling
+            if(array_size<0)
+            {
+               printf("array_size is a positive number\n");
+               return 1; 
+            }
             break;
           case 2:
             pnum = atoi(optarg);
-            // your code here
-            // error handling
+            if(pnum<0)
+            {
+               printf("pnum is a positive number\n");
+               return 1; 
+            }
             break;
           case 3:
             with_files = true;
@@ -90,34 +99,57 @@ int main(int argc, char **argv) {
 
   struct timeval start_time;
   gettimeofday(&start_time, NULL);
-
-  for (int i = 0; i < pnum; i++) {
+  
+  int fds[2];//Добавление для pipe()
+  pipe(fds);
+  int fdlen= array_size/pnum;//разделение имассива на части для процессов
+  
+  for (int i = 0; i < pnum; i++) 
+  {
     pid_t child_pid = fork();
-    if (child_pid >= 0) {
-      // successful fork
+    if (child_pid >= 0) 
+    {
       active_child_processes += 1;
-      if (child_pid == 0) {
-        // child process
-
-        // parallel somehow
-
-        if (with_files) {
-          // use files here
-        } else {
-          // use pipe here
+      if (child_pid == 0) 
+      {
+        struct MinMax minmax;//нахождение макисмумов и минимумов на частях массива 
+        if(i != pnum-1) minmax = GetMinMax(array,i*fdlen,(i+1)*fdlen);
+        else minmax = GetMinMax(array,i*fdlen,array_size);
+       // printf("Частичные значения для процесса %d  Min %d     Max  %d",i, minmax.min,minmax.max);
+        if (with_files) 
+        {
+          FILE * file;
+          file=fopen("file.txt","w");//внесение результатов в файл
+          if(file==0)
+          {
+              printf("Not open file\n");
+              return 1;
+          }else
+          {
+              fwrite(&minmax,sizeof(struct MinMax),1,file);
+              
+          }
+          fclose(file);
+        } else 
+        {
+          write(fds[1],&minmax,sizeof(struct MinMax));
+          close(fds[1]);
+          // внесение результатов в поток 
         }
         return 0;
       }
 
-    } else {
+    } else 
+    {
       printf("Fork failed!\n");
       return 1;
     }
   }
 
-  while (active_child_processes > 0) {
-    // your code here
-
+  while (active_child_processes > 0) 
+  {
+    
+    wait(NULL);// окончание процессов
     active_child_processes -= 1;
   }
 
@@ -126,17 +158,29 @@ int main(int argc, char **argv) {
   min_max.max = INT_MIN;
 
   for (int i = 0; i < pnum; i++) {
-    int min = INT_MAX;
-    int max = INT_MIN;
+    struct MinMax Min_Max;
 
-    if (with_files) {
-      // read from files
-    } else {
-      // read from pipes
+    if (with_files) 
+    {
+      FILE * file=fopen("file.txt","rb");// read from files
+      if(file==0)
+          {
+              printf("Not open file\n");
+              return 1;
+          }else
+          {
+              fseek(file,i*sizeof(struct MinMax),SEEK_SET);
+              fread(&Min_Max,sizeof(struct MinMax),1,file);
+          }
+       fclose(file);
+    } else 
+    {
+        read(fds[0],&Min_Max,sizeof(struct MinMax));
+        close(fds[0]);// read from pipes
     }
 
-    if (min < min_max.min) min_max.min = min;
-    if (max > min_max.max) min_max.max = max;
+    if (Min_Max.min < min_max.min) min_max.min = Min_Max.min;
+    if (Min_Max.max > min_max.max) min_max.max = Min_Max.max;
   }
 
   struct timeval finish_time;

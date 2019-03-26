@@ -1,0 +1,7 @@
+task1:
+gcc -o minmax find_min_max.c utils.c sequential_min_max.c
+
+task4 :
+./task5
+./parallel_min_max --seed 50 --array_size 9 --pnum 3
+./parallel_min_max --seed 50 --array_size 9 --pnum 3 -f
