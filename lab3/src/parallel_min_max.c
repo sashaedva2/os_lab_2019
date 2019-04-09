@@ -115,11 +115,10 @@ int main(int argc, char **argv) {
         struct MinMax minmax;//нахождение макисмумов и минимумов на частях массива 
         if(i != pnum-1) minmax = GetMinMax(array,i*fdlen,(i+1)*fdlen);
         else minmax = GetMinMax(array,i*fdlen,array_size);
-       // printf("Частичные значения для процесса %d  Min %d     Max  %d",i, minmax.min,minmax.max);
         if (with_files) 
         {
           FILE * file;
-          file=fopen("file.txt","w");//внесение результатов в файл
+          file=fopen("file.txt","a");//внесение результатов в файл
           if(file==0)
           {
               printf("Not open file\n");
@@ -127,13 +126,15 @@ int main(int argc, char **argv) {
           }else
           {
               fwrite(&minmax,sizeof(struct MinMax),1,file);
+              printf("\nЧастичные значения для процесса %d  Min %d  ||Max  %d",i, minmax.min,minmax.max);
               
           }
           fclose(file);
         } else 
         {
+          printf("\nЧастичные значения для процесса %d  Min %d   ||Max  %d",i, minmax.min,minmax.max);
           write(fds[1],&minmax,sizeof(struct MinMax));
-          close(fds[1]);
+          
           // внесение результатов в поток 
         }
         return 0;
@@ -151,49 +152,52 @@ int main(int argc, char **argv) {
     
     wait(NULL);// окончание процессов
     active_child_processes -= 1;
+    close(fds[1]);
   }
 
   struct MinMax min_max;
   min_max.min = INT_MAX;
   min_max.max = INT_MIN;
-
-  for (int i = 0; i < pnum; i++) {
-    struct MinMax Min_Max;
-
-    if (with_files) 
-    {
-      FILE * file=fopen("file.txt","rb");// read from files
-      if(file==0)
-          {
-              printf("Not open file\n");
-              return 1;
-          }else
-          {
-              fseek(file,i*sizeof(struct MinMax),SEEK_SET);
-              fread(&Min_Max,sizeof(struct MinMax),1,file);
-          }
-       fclose(file);
-    } else 
-    {
+  struct MinMax Min_Max;
+  if (with_files) 
+  {
+     FILE * file=fopen("file.txt","r");// read from files
+     if(file==0)
+         {
+             printf("Not open file\n");
+             return 1;
+         }else
+         {
+             for (int i = 0; i < pnum; i++)
+             {
+               //fseek(file,sizeof(struct MinMax)*i,0);
+               fread(&Min_Max,sizeof(struct MinMax),1,file);
+               if (Min_Max.min < min_max.min){min_max.min = Min_Max.min;}
+               if (Min_Max.max > min_max.max){min_max.max = Min_Max.max;}
+             }
+             fclose(file);
+         }
+  }else
+  {
+      for (int i = 0; i < pnum; i++)
+      {
         read(fds[0],&Min_Max,sizeof(struct MinMax));
-        close(fds[0]);// read from pipes
-    }
-
-    if (Min_Max.min < min_max.min) min_max.min = Min_Max.min;
-    if (Min_Max.max > min_max.max) min_max.max = Min_Max.max;
+        if (Min_Max.min < min_max.min){min_max.min = Min_Max.min;}
+        if (Min_Max.max > min_max.max){min_max.max = Min_Max.max;}
+      }
+      close(fds[0]);// read from pipes
   }
-
+  
+  
   struct timeval finish_time;
   gettimeofday(&finish_time, NULL);
-
   double elapsed_time = (finish_time.tv_sec - start_time.tv_sec) * 1000.0;
   elapsed_time += (finish_time.tv_usec - start_time.tv_usec) / 1000.0;
-
   free(array);
-
-  printf("Min: %d\n", min_max.min);
+  printf("\nMin: %d\n", min_max.min);
   printf("Max: %d\n", min_max.max);
   printf("Elapsed time: %fms\n", elapsed_time);
   fflush(NULL);
+  remove("file.txt");
   return 0;
 }
