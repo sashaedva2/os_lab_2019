@@ -14,11 +14,10 @@ void *ThreadSum(void *args) {
 }
 
 int main(int argc, char **argv) {
-  
   uint32_t threads_num = -1;
   uint32_t array_size = -1;
   uint32_t seed = -1;
-  static struct option options[] = 	{{"seed", required_argument, 0, 0},
+        static struct option options[] = 	{{"seed", required_argument, 0, 0},
                                             {"array_size", required_argument, 0, 0},
                                             {"threads_num", required_argument, 0, 0},
                                             {0, 0, 0, 0}};
@@ -65,26 +64,23 @@ int main(int argc, char **argv) {
                 return 1;
         }
   
-  
   pthread_t threads[threads_num];
 
   int *array = malloc(sizeof(int) * array_size);
   GenerateArray(array, array_size, seed);
-  
+
   struct timeval start_time;
   gettimeofday(&start_time, NULL);
 
   struct SumArgs args[threads_num];
-  
-  for(int i = 0; i < threads_num; i++)
+	for(int i = 0; i < threads_num; i++)
 	{
 		args[i].array = array;
 		args[i].begin =     i*array_size/threads_num;
 		args[i].end   = (i == (threads_num - 1)) ? array_size : (i+1)*array_size/threads_num;
 	}
-	
   for (uint32_t i = 0; i < threads_num; i++) {
-    if (pthread_create(&threads[i], NULL, ThreadSum, (void *)&args)) {
+    if (pthread_create(&threads[i], NULL, ThreadSum, (void *)&args[i])) {
       printf("Error: pthread_create failed!\n");
       return 1;
     }
@@ -97,11 +93,12 @@ int main(int argc, char **argv) {
     total_sum += sum;
   }
 
-  struct timeval finish_time;
+    struct timeval finish_time;
     gettimeofday(&finish_time, NULL);
     
     double elapsed_time = (finish_time.tv_sec - start_time.tv_sec) * 1000.0;
     elapsed_time += (finish_time.tv_usec - start_time.tv_usec) / 1000.0;
+
   free(array);
   printf("Total: %d\n", total_sum);
   printf("Elapsed time: %fms\n", elapsed_time);
