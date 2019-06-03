@@ -1,0 +1,5 @@
+rm serv.txt
+./server --port 20001 --tnum 2 --servers serv.txt
+./server --port 20002 --tnum 2 --servers serv.txt
+./server --port 20003 --tnum 2 --servers serv.txt
+./client --k 10 --mod 4000000 --servers serv.txt
